@@ -1,9 +1,10 @@
+require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const cron = require("node-cron");
 const axios = require("axios");
 
 // Telegram bot setup
-const telegramToken = "7817604006:AAGRvcg9YPBQDnm5D05xHUbXWMuw8BMGFOg";
+const telegramToken = process.env.TELEGRAM_BOT_TOKEN; // Telegram Bot Token
 const bot = new TelegramBot(telegramToken, { polling: true });
 
 // Variables to store tokens
