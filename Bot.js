@@ -173,15 +173,15 @@ function scheduleReport(chatId, reportType, time) {
   date.setMinutes(minute);
 
   // Add 5 hours and 30 minutes
-  date.setHours(date.getHours() + 5);
-  date.setMinutes(date.getMinutes() + 30);
+  date.setHours(date.getHours() - 5);
+  date.setMinutes(date.getMinutes() - 30);
 
   // Extract the new hours and minutes
   const newHour = date.getHours().toString().padStart(2, "0");
   const newMinute = date.getMinutes().toString().padStart(2, "0");
   const newTime = `${newHour}:${newMinute}`;
 
-  console.log("Updated time:", newTime);
+  // console.log("Updated time:", newTime);
   let cronExpression = `${newMinute} ${newHour} * * *`;
   console.log("Cron expression:", cronExpression);
 
