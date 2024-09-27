@@ -325,7 +325,7 @@ bot.on("message", (msg) => {
     login(chatId); // Attempt to log in with collected credentials
   } else {
     // Command handling after login
-    if (text === "/get quarterly sales report") {
+    if (text === "/getquarterlysalesreport") {
       getSalesReport(chatId, "quarter");
     } else if (text === "/getweeklysalesreport") {
       getSalesReport(chatId, "week");
