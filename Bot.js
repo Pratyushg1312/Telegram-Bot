@@ -167,9 +167,26 @@ async function getSalesReport(chatId, filter) {
 function scheduleReport(chatId, reportType, time) {
   // Convert user input time to cron format (assuming the input is in 24-hour format, e.g., "14:30")
   const [hour, minute] = time.split(":");
+  console.log(time, hour, minute);
+  let date = new Date();
+  date.setHours(hour);
+  date.setMinutes(minute);
+
+  // Add 5 hours and 30 minutes
+  date.setHours(date.getHours() + 5);
+  date.setMinutes(date.getMinutes() + 30);
+
+  // Extract the new hours and minutes
+  const newHour = date.getHours().toString().padStart(2, "0");
+  const newMinute = date.getMinutes().toString().padStart(2, "0");
+  const newTime = `${newHour}:${newMinute}`;
+
+  console.log("Updated time:", newTime);
+  let cronExpression = `${newMinute} ${newHour} * * *`;
+  console.log("Cron expression:", cronExpression);
 
   // Create a cron job for the specific report type and time
-  const cronTask = cron.schedule(`${minute} ${hour} * * *`, async () => {
+  const cronTask = cron.schedule(cronExpression, async () => {
     console.log(
       `Sending ${reportType} report at ${time} for chatId: ${chatId}`
     );
@@ -339,7 +356,7 @@ bot.on("message", (msg) => {
       const parts = text.split(" ");
       const reportType = parts[2]; // e.g., daily, weekly, monthly, quarterly
       const time = parts[3]; // e.g., "14:30"
-
+      console.log("reportType", time);
       // Check if the report type and time are valid
       if (
         !["daily", "weekly", "monthly", "quarterly"].includes(reportType) ||
