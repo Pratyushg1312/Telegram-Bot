@@ -2,26 +2,11 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const cron = require("node-cron");
 const axios = require("axios");
-const express = require("express");
 
 // Telegram bot setup
 const telegramToken = process.env.TELEGRAM_BOT_TOKEN; // Telegram Bot Token
 const bot = new TelegramBot(telegramToken, { polling: true });
 
-// Express app to handle the port for Render
-const app = express();
-const port = process.env.PORT || 3000; // Use the port from environment or default to 3000
-
-app.get("/", (req, res) => {
-  res.send("Telegram bot is running.");
-});
-
-// Dummy server to keep Render happy
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
-// Variables to store tokens
 let accessToken = null;
 let tokenExpiry = null; // Time when the access token expires
 
