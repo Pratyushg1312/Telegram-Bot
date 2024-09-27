@@ -7,6 +7,7 @@ const axios = require("axios");
 const telegramToken = process.env.TELEGRAM_BOT_TOKEN; // Telegram Bot Token
 const bot = new TelegramBot(telegramToken, { polling: true });
 
+// Variables to store tokens
 let accessToken = null;
 let tokenExpiry = null; // Time when the access token expires
 
@@ -147,7 +148,119 @@ async function getSalesReport(chatId, filter) {
     });
 }
 
-// Other functions remain the same (scheduleReport, logout, showScheduledTasks, deleteScheduledTask, sendCommandList, etc.)
+//Schedule Report function
+function scheduleReport(chatId, reportType, time) {
+  // Convert user input time to cron format (assuming the input is in 24-hour format, e.g., "14:30")
+  const [hour, minute] = time.split(":");
+
+  // Create a cron job for the specific report type and time
+  const cronTask = cron.schedule(`${minute} ${hour} * * *`, async () => {
+    console.log(
+      `Sending ${reportType} report at ${time} for chatId: ${chatId}`
+    );
+    await getSalesReport(chatId, reportType); // Send the requested report
+  });
+
+  // If the user doesn't have any scheduled reports yet, initialize their array
+  if (!scheduledReports[chatId]) {
+    scheduledReports[chatId] = [];
+  }
+
+  // Store the cron task and its details
+  scheduledReports[chatId].push({
+    cronTask, // The actual cron task
+    reportType, // Store the type of the report (e.g., daily, weekly, etc.)
+    time, // Store the time it is scheduled for
+  });
+
+  bot.sendMessage(
+    chatId,
+    `Your ${reportType} report is now scheduled daily at ${time}.`
+  );
+}
+
+// Function to log out the user
+function logout(chatId) {
+  if (!accessToken) {
+    bot.sendMessage(chatId, "You are not logged in.");
+    return;
+  }
+  accessToken = null;
+  tokenExpiry = null;
+  userCredentials = {
+    user_login_id: "",
+    user_login_password: "",
+  };
+  bot.sendMessage(chatId, "You have been successfully logged out.");
+  console.log("User logged out.");
+}
+
+// Function to show all scheduled tasks for a user
+function showScheduledTasks(chatId) {
+  if (!scheduledReports[chatId] || scheduledReports[chatId].length === 0) {
+    bot.sendMessage(chatId, "You have no scheduled reports.");
+    return;
+  }
+
+  let taskList = "Your scheduled reports:\n";
+  scheduledReports[chatId].forEach((task, index) => {
+    taskList += `${index + 1}. Report type: ${task.reportType}, Time: ${
+      task.time
+    }\n`;
+  });
+
+  bot.sendMessage(chatId, taskList);
+}
+
+// Function to delete a scheduled task
+function deleteScheduledTask(chatId, taskNumber) {
+  if (!scheduledReports[chatId] || scheduledReports[chatId].length === 0) {
+    bot.sendMessage(chatId, "You have no scheduled reports to delete.");
+    return;
+  }
+
+  const taskIndex = taskNumber - 1; // Convert to 0-based index
+  if (taskIndex < 0 || taskIndex >= scheduledReports[chatId].length) {
+    bot.sendMessage(chatId, "Invalid task number.");
+    return;
+  }
+
+  const task = scheduledReports[chatId][taskIndex];
+  task.cronTask.stop(); // Stop the cron job
+
+  // Remove the task from the array
+  scheduledReports[chatId].splice(taskIndex, 1);
+
+  bot.sendMessage(
+    chatId,
+    `Scheduled report #${taskNumber} (Report type: ${task.reportType}, Time: ${task.time}) has been deleted.`
+  );
+}
+// Function to send the list of available commands
+function sendCommandList(chatId) {
+  const commandList = `
+Here are the available commands:
+- /command: Show this list of commands
+- /start: Start interacting with the bot
+- login: Begin the login process
+- logout: Log out of your account
+${
+  accessToken
+    ? `
+- get sales report: Get all users sales report
+- get daily sales report: Get a daily sales report
+- get weekly sales report: Get a weekly sales report
+- get monthly sales report: Get a monthly sales report
+- get quarterly sales report: Get a quarterly sales report
+- schedule report {type} {HH:MM}: Schedule a report to be sent at the specified time
+- show scheduled reports: View all your scheduled reports
+- delete scheduled report {task number}: Delete a specific scheduled report`
+    : ""
+}
+
+`;
+  bot.sendMessage(chatId, commandList);
+}
 
 // Start the bot and listen for user messages
 bot.on("message", (msg) => {
@@ -232,10 +345,10 @@ bot.on("message", (msg) => {
       if (isNaN(taskNumber)) {
         bot.sendMessage(chatId, "Please provide a valid task number.");
       } else {
-        deleteScheduledTask(chatId, taskNumber); // Delete the scheduled task
+        deleteScheduledTask(chatId, taskNumber); // Delete the specified task
       }
     } else {
-      bot.sendMessage(chatId, "Invalid command. Type '/command' for help.");
+      bot.sendMessage(chatId, "Invalid command. Please try again.");
     }
   }
 });
