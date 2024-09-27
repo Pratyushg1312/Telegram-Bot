@@ -2,7 +2,22 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const cron = require("node-cron");
 const axios = require("axios");
+const express = require("express");
+const app = express();
+const port = 10000;
 
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Simple route to test the server
+app.get("/", (req, res) => {
+  res.send("Fake server is running on port 10000");
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
 // Telegram bot setup
 const telegramToken = process.env.TELEGRAM_BOT_TOKEN; // Telegram Bot Token
 const bot = new TelegramBot(telegramToken, { polling: true });
@@ -35,13 +50,13 @@ async function login(chatId) {
     bot.sendMessage(
       chatId,
       "Login successful! You can now request sales reports. Here are your options:\n" +
-        '- "Get sales report"\n' +
-        '- "Get daily sales report"\n' +
-        '- "Get weekly sales report"\n' +
-        '- "Get monthly sales report"\n' +
-        '- "Get quarterly sales report"\n' +
+        '- "/Getsalesreport"\n' +
+        '- "/Getdailysalesreport"\n' +
+        '- "/Getweeklysalesreport"\n' +
+        '- "/Getmonthlysalesreport"\n' +
+        '- "/Getquarterlysalesreport"\n' +
         '- "Schedule report {type} {HH:MM}" to schedule a report\n' +
-        '- "Show scheduled reports" to view all scheduled reports\n' +
+        '- "/Showscheduledreports" to view all scheduled reports\n' +
         '- "Delete scheduled report {task number}" to delete a scheduled report\n' +
         '- "/command" to see all available commands\n'
     );
@@ -90,7 +105,7 @@ function greetUser(chatId) {
 
   bot.sendMessage(
     chatId,
-    `${greeting} Welcome! Type 'login' to start the login process.`
+    `${greeting} Welcome! Type '/login' to start the login process.`
   );
 }
 
@@ -242,18 +257,18 @@ function sendCommandList(chatId) {
 Here are the available commands:
 - /command: Show this list of commands
 - /start: Start interacting with the bot
-- login: Begin the login process
-- logout: Log out of your account
+- /login: Begin the login process
+- /logout: Log out of your account
 ${
   accessToken
     ? `
-- get sales report: Get all users sales report
-- get daily sales report: Get a daily sales report
-- get weekly sales report: Get a weekly sales report
-- get monthly sales report: Get a monthly sales report
-- get quarterly sales report: Get a quarterly sales report
+- /getsalesreport: Get all users sales report
+- /getdailysalesreport: Get a daily sales report
+- /getweeklysalesreport: Get a weekly sales report
+- /getmonthlysalesreport: Get a monthly sales report
+- /getquarterlysalesreport: Get a quarterly sales report
 - schedule report {type} {HH:MM}: Schedule a report to be sent at the specified time
-- show scheduled reports: View all your scheduled reports
+- /showscheduledreports: View all your scheduled reports
 - delete scheduled report {task number}: Delete a specific scheduled report`
     : ""
 }
@@ -277,13 +292,13 @@ bot.on("message", (msg) => {
     return;
   }
 
-  if (text === "logout") {
+  if (text === "/logout") {
     logout(chatId);
     return;
   }
 
   // Collect user credentials
-  if (text === "login") {
+  if (text === "/login") {
     if (accessToken) {
       bot.sendMessage(
         chatId,
@@ -310,15 +325,15 @@ bot.on("message", (msg) => {
     login(chatId); // Attempt to log in with collected credentials
   } else {
     // Command handling after login
-    if (text === "get quarterly sales report") {
+    if (text === "/get quarterly sales report") {
       getSalesReport(chatId, "quarter");
-    } else if (text === "get weekly sales report") {
+    } else if (text === "/getweeklysalesreport") {
       getSalesReport(chatId, "week");
-    } else if (text === "get monthly sales report") {
+    } else if (text === "/getmonthlysalesreport") {
       getSalesReport(chatId, "month");
-    } else if (text === "get daily sales report") {
+    } else if (text === "/getdailysalesreport") {
       getSalesReport(chatId, "today");
-    } else if (text === "get sales report") {
+    } else if (text === "/getsalesreport") {
       getSalesReport(chatId);
     } else if (text.startsWith("schedule report")) {
       const parts = text.split(" ");
@@ -337,7 +352,7 @@ bot.on("message", (msg) => {
       } else {
         scheduleReport(chatId, reportType, time); // Schedule the report
       }
-    } else if (text === "show scheduled reports") {
+    } else if (text === "/showscheduledreports") {
       showScheduledTasks(chatId); // Show all scheduled tasks
     } else if (text.startsWith("delete scheduled report")) {
       const parts = text.split(" ");
