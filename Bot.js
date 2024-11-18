@@ -5,6 +5,8 @@ const axios = require("axios");
 const express = require("express");
 const app = express();
 const port = 10000;
+const baseUrl = "https://jarvis.work:8080/api/";
+// const baseUrl="http://35.225.122.157:8080/api/";
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -38,13 +40,10 @@ let scheduledReports = {};
 // Function to log in and obtain access token
 async function login(chatId) {
   try {
-    const response = await axios.post(
-      "http://35.225.122.157:8080/api/login_user",
-      userCredentials
-    );
+    const response = await axios.post(`${baseUrl}login_user`, userCredentials);
 
     accessToken = response.data.token; // Assuming the API responds with a token field
-    tokenExpiry = Date.now() + 24 * 60 * 60 * 1000; // Set expiry to 24 hours (in milliseconds)
+    tokenExpiry = Date.now() + 22 * 60 * 60 * 1000; // Set expiry to 24 hours (in milliseconds)
     console.log("Logged in and token acquired.");
 
     bot.sendMessage(
@@ -65,7 +64,12 @@ async function login(chatId) {
     setTimeout(() => {
       bot.sendMessage(chatId, "Reattempting login...");
       login(chatId); // Reattempt login every 24 hours
-    }, 24 * 60 * 60 * 1000);
+    }, 22 * 60 * 60 * 1000);
+
+    if (accessToken) {
+      scheduleReport(chatId, "daily", "23:00");
+      scheduleReport(chatId, "monthly", "23:01");
+    }
   } catch (error) {
     console.error(
       "Login failed:",
@@ -105,7 +109,10 @@ function greetUser(chatId) {
 
   bot.sendMessage(
     chatId,
-    `${greeting} Welcome! Type '/login' to start the login process.`
+    `${greeting} Welcome! I am Edith, your sales report assistant.
+Type '/login' to start the login process.
+Type '/command' to see all available commands.
+    `
   );
 }
 
@@ -115,7 +122,7 @@ async function getSalesReport(chatId, filter) {
 
   axios
     .get(
-      `http://35.225.122.157:8080/api/sales/sales_users_report_list${
+      `${baseUrl}sales/sales_users_report_list${
         filter
           ? filter === "custom"
             ? `?filter=${filter}&&start_date=${fromDate}&&end_date=${toDate}`
@@ -223,6 +230,8 @@ function logout(chatId) {
     user_login_id: "",
     user_login_password: "",
   };
+  scheduledReports[chatId]?.forEach((task) => task.cronTask.stop()); // Stop all scheduled tasks
+  scheduledReports = {};
   bot.sendMessage(chatId, "You have been successfully logged out.");
   console.log("User logged out.");
 }
@@ -321,6 +330,7 @@ bot.on("message", (msg) => {
         chatId,
         "You are already logged in. Please logout to login again."
       );
+
       return;
     }
     userCredentials = {
